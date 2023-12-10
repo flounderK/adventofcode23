@@ -22,3 +22,4 @@ def cli(args=None, namespace=None):
     return data
 
 from .grid import GridPoint, GridPointRange
+from .value_range import ValueRange
