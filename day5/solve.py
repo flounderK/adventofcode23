@@ -101,36 +101,56 @@ for seed in seeds:
 
 print("part 1 %d" % min(locations))
 
-# RuleIntersection = namedtuple("RuleIntersection", ["intersect", "rule"])
-#
-# p2_locations = []
-# seed_ranges = []
-# for seed_start, seed_len in batch(seeds, 2):
-#     seed_range = ValueRange(seed_start, seed_len)
-#     seed_ranges.append(seed_range)
-#
-# reverse_map_rules_list = map_rules_list[::-1]
-# lowest_dest_range_rule = None
-# # get the rule that will output the lowest dest range for this mapping
-# for rule in reverse_map_rules_list[0].rules:
-#     if lowest_dest_range_rule is None or rule.dest_start < lowest_dest_range_rule.dest.start:
-#         lowest_dest_range_rule = rule
-#
-# current_target_src = lowest_dest_range_rule.src
-# # find the rule that maps
-# for map_rules in reverse_map_rules_list[1:]:
-#     # get all of the intersections of this MapRules.rules.dest with the src
-#     # for the rule that is currently being targeted
-#     rule_intersections = []
-#     # get all of the rules that can intersect with the target ValueRange
-#     for rule in map_rules.rules:
-#         intersect = rule.dest.intersection(current_target_src)
-#         if intersect is None:
-#             continue
-#         rule_intersections.append(RuleIntersection(intersect, rule))
-#
-#     # sort the intersections (which must be valid for the current
-#     # target ValueRange already) by where the intersection starts
-#     rule_intersections.sort(key=lambda a: a.intersect.start)
-#     for
+def restricted_rule_generator(map_rules: 'MapRules', target_value_range: 'ValueRange'):
+    """
+    Returns a list of RangeRules that each have their `src` and `dest`
+    ValueRange's restricted so that only values that would look up a value in
+    `target_value_range` are present
+    """
+    RuleIntersection = namedtuple("RuleIntersection", ["intersect", "rule"])
+    # get all of the intersections of this MapRules.rules.dest with the src
+    # for the rule that is currently being targeted
+    rule_intersections = []
+    # get all of the rules that can intersect with the target ValueRange
+    for rule in map_rules.rules:
+        intersect = rule.dest.intersection(target_value_range)
+        if intersect is None:
+            continue
+        # create new RangeRule here with an apropriately shrunk
+        # src and dest so that only the values of the original rule
+        # that would lookup a value in the specified @target_value_range
+        # are included
+        new_rule_start_diff = 0
+        if intersect.start != rule.dest.start:
+            new_rule_start_diff = intersect.start - rule.dest.start
+
+        restricted_src_rule = RangeRule(intersect.start,
+                                 rule.src.start + new_rule_start_diff,
+                                 intersect.length)
+
+        rule_intersections.append(RuleIntersection(intersect, restricted_src_rule))
+
+    # sort the intersections (which must be valid for the current
+    # target ValueRange already) by where the intersection starts
+    rule_intersections.sort(key=lambda a: a.intersect.start)
+    return [rule for intersect, rule  in rule_intersections]
+
+
+p2_locations = []
+seed_ranges = []
+for seed_start, seed_len in batch(seeds, 2):
+    seed_range = ValueRange(seed_start, seed_len)
+    seed_ranges.append(seed_range)
+
+reverse_map_rules_list = map_rules_list[::-1]
+
+# sort rules by lowest dest
+reverse_map_rules_list[0].rules.sort(key=lambda a: a.dest.start)
+for last_level_rule in reverse_map_rules_list[0].rules:
+    target_value_range = last_level_rule.src
+
+    for map_rules in reverse_map_rules_list[1:]:
+        for next_layer_rule in restricted_rule_generator(map_rules, target_value_range):
+
+
 
