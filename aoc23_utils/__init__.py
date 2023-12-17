@@ -23,3 +23,4 @@ def cli(args=None, namespace=None):
 
 from .grid import GridPoint, GridPointRange
 from .value_range import ValueRange
+from .binary_tree import BinaryTreeNode, BinaryTreeDir
